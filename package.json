@@ -1,0 +1,25 @@
+{
+  "name": "garden-planner",
+  "version": "1.0.0",
+  "description": "plan your garden beds",
+  "main": "index.js",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "fs": "^0.0.1-security"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sebastian-meier/garden-planner.git"
+  },
+  "author": "@seb_meier",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/sebastian-meier/garden-planner/issues"
+  },
+  "homepage": "https://github.com/sebastian-meier/garden-planner#readme"
+}

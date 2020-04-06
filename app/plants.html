@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+  <head>
+    <meta charset="utf-8">
+    <style type="text/css">
+      rect {
+        stroke: black;
+      }
+    </style>
+  </head>
+  <body>
+    <nav><ul>
+      <li><a href="index.html">Manage Beds</a></li>
+      <li><a href="plants.html">Edit Plants</a></li>
+      <li><a href="beds.html">Edit Beds</a></li>
+    </ul></nav>
+    <h1>Plants</h1>
+    <div id="table">
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Icon</th><th>Type</th><th>Enemies</th><th>Friends</th><th></th></tr>
+        </thead>
+        <tbody></tbody>
+        <tfoot>
+          <tr><th>Name</th><th>Icon</th><th>Type</th><th>Enemies</th><th>Friends</th><th></th></tr>
+        </tfoot>
+      </table>
+    </div>
+    <div id="insert-form">
+      <h2>Create new plant</h2>
+      <label>Name</label><input type="text" id="insert-form-name" /><br />
+      <label>Icon</label><input type="text" id="insert-form-icon" /><br />
+      <label>Type</label><input type="text" id="insert-form-type" /><br />
+      <label>Friends</label><input type="text" id="insert-form-friends" /><br />
+      <label>Enemies</label><input type="text" id="insert-form-enemies" /><br />
+      <button id="insert-form-button">Insert</button>
+    </div>
+    <div id="update-form">
+      <h2>Edit plant</h2>
+      <input type="hidden" id="update-form-id" />
+      <label>Name</label><input type="text" id="update-form-name" /><br />
+      <label>Icon</label><input type="text" id="update-form-icon" /><br />
+      <label>Type</label><input type="text" id="update-form-type" /><br />
+      <label>Friends</label><input type="text" id="update-form-friends" /><br />
+      <label>Enemies</label><input type="text" id="update-form-enemies" /><br />
+      <button id="update-form-button">Update</button>
+    </div>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script>
+      d3.json("http://localhost:3000/data")
+        .then((data) => {
+          update(data);
+        });
+
+      const update = (data) => {
+        d3.selectAll("#table tbody *").remove();
+        const rows = d3.select("#table tbody").selectAll("tr").data(data.plants).enter().append("tr");
+          rows.append("td").html((d) => d.name)
+          rows.append("td").html((d) => d.icon)
+          rows.append("td").html((d) => d.type)
+          rows.append("td").html((d) => d.enemies.join(","))
+          rows.append("td").html((d) => d.friends.join(","))
+          rows.append("td").append("a").text("edit").on("click", (d) => {
+            ["id", "name", "icon", "type", "friends", "enemies"].forEach((label) => {
+              d3.select(`#update-form-${label}`).attr("value", d[label]);
+            });
+          });
+      };
+
+      d3.select("#update-form-button").on("click", () => {
+        let url = "http://localhost:3000/update/plant?";
+        ["id", "name", "icon", "type", "friends", "enemies"].forEach((label, i) => {
+          if (i > 0) {
+            url += "&";
+          }
+          url += label + "=" + encodeURIComponent(d3.select(`#update-form-${label}`).property("value"));
+        });
+        fetch(url)
+          .then((response) => {
+            return response.json();
+          })
+          .then((data) => {
+            update(data);
+          });
+      });
+
+      d3.select("#insert-form-button").on("click", () => {
+        let url = "http://localhost:3000/insert/plant?";
+        ["name", "icon", "type", "friends", "enemies"].forEach((label, i) => {
+          if (i > 0) {
+            url += "&";
+          }
+          url += label + "=" + encodeURIComponent(d3.select(`#insert-form-${label}`).property("value"));
+        });
+        fetch(url)
+        .then((response) => {
+            return response.json();
+          })
+          .then((data) => {
+            update(data);
+          });
+      });
+    </script>
+  </body>
+</html>

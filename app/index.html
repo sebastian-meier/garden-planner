@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+  <head>
+    <meta charset="utf-8">
+    <style type="text/css">
+      rect {
+        stroke: black;
+      }
+    </style>
+  </head>
+  <body>
+    <nav><ul>
+      <li><a href="index.html">Manage Beds</a></li>
+      <li><a href="plants.html">Edit Plants</a></li>
+      <li><a href="beds.html">Edit Beds</a></li>
+    </ul></nav>
+    <div id="body"></div>
+    <div id="form">
+      <label>Pflanze</label>
+      <input type="hidden" id="x" />
+      <input type="hidden" id="y" />
+      <input type="hidden" id="bed_id" />
+      <select id="plant_id"></select>
+      <button>Update</button>
+    </div>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script>
+      const scale = 2;
+      d3.json("http://localhost:3000/data")
+        .then((data) => {
+          update(data);
+        });
+
+      const update = (data) => {
+        const plant_map = {};
+        data.plants.forEach((plant, i) => {
+          plant_map[plant.id] = i;
+        });
+
+        const bed_map = {};
+        data.beds.forEach((bed, i) => {
+          bed_map[bed.id] = i;
+        });
+
+        const slot_map = {};
+        data.beds.forEach((bed, i) => {
+          slot_map[bed.id] = {};
+          for (let x = 0; x < bed.slots.cols; x += 1) {
+            slot_map[bed.id][x] = {};
+            for (let y = 0; y < bed.slots.rows; y += 1) {
+              slot_map[bed.id][x][y] = false;
+            }
+          }
+          bed.plants.forEach((plant) => {
+            slot_map[bed.id][plant.slot[0]][plant.slot[1]] = plant.plant_id;
+          });
+          for (let x = 0; x < bed.slots.cols; x += 1) {
+            for (let y = 0; y < bed.slots.rows; y += 1) {
+              if (!slot_map[bed.id][x][y]) {
+                bed.plants.push({
+                  plant_id:false,
+                  state:"empty",
+                  slot:[x,y]
+                });
+              }
+            }
+          }
+        });
+
+        d3.selectAll("select *").remove();
+        d3.selectAll("select").selectAll("option").data([{id: false, name:"Empty"}, ...data.plants]).enter().append("option")
+          .attr("value", (d) => d.id)
+          .text((d) => d.name);
+
+        d3.selectAll("#body *").remove();
+        const beds = d3.select("#body").selectAll("div").data(data.beds).enter().append("div");
+        beds.append("h2").text((d) => d.name);
+        const bed_svg = beds.append("svg")
+          .attr("width", (d) => d.size.width * scale)
+          .attr("height", (d) => d.size.height * scale)
+          .each(function (bed) {
+            const col_size = bed.size.width / bed.slots.cols * scale;
+            const row_size = bed.size.height / bed.slots.rows * scale;
+
+            const plants = d3.select(this).selectAll("g").data(bed.plants).enter().append("g")
+              .attr("transform", (d) => `translate(${col_size * d.slot[0]},${row_size * d.slot[1]})`);
+
+            plants.append("rect")
+              .style("fill", (d, i, el) => {
+                if (!d.plant_id) {
+                  return "#DDDDDD";
+                } else {
+                  const plant = data.plants[plant_map[d.plant_id]];
+
+                  let bad_neighbor = false;
+                  const neighbors = [
+                    [d.slot[0]-1, d.slot[1]],
+                    [d.slot[0], d.slot[1]-1],
+                    [d.slot[0]-1, d.slot[1]-1],
+                    [d.slot[0]+1, d.slot[1]+1],
+                    [d.slot[0]+1, d.slot[1]],
+                    [d.slot[0], d.slot[1]+1]
+                  ];
+
+                  neighbors.forEach((neighbor) => {
+                    if (neighbor[0] in slot_map[bed.id]) {
+                      if (neighbor[1] in slot_map[bed.id][neighbor[0]]) {
+                        if ( slot_map[bed.id][neighbor[0]][neighbor[1]] && 
+                          plant.type === data.plants[plant_map[slot_map[bed.id][neighbor[0]][neighbor[1]]]].type &&
+                          plant.id !== data.plants[plant_map[slot_map[bed.id][neighbor[0]][neighbor[1]]]].id
+                        ) {
+                          bad_neighbor = true;
+                        }
+                      }
+                    }
+                  });
+
+                  if (bad_neighbor) {
+                    return "#EDA5A5";
+                  } else {
+                    return "#D1EDA5";
+                  }
+                }
+              })
+              .attr("width", col_size)
+              .attr("height", row_size);
+
+            plants.append("image")
+              .attr("width", 25)
+              .attr("height", 25)
+              .attr("x", 5)
+              .attr("y", 5)
+              .attr("xlink:href", (d,i) => {
+                if (!d.plant_id) {
+                  return '';
+                } else {
+                  return `./images/${data.plants[plant_map[d.plant_id]].icon}.png`;
+                }
+              });
+
+            plants.on("click", function (d) {
+              d3.select("#x").attr("value", d.slot[0]);
+              d3.select("#y").attr("value", d.slot[1]);
+              d3.select("#bed_id").attr("value", d3.select(this.parentNode).datum().id);
+              d3.select("#plant_id").property('value', d.plant_id);
+            });
+          });
+        };
+
+        d3.select("button").on("click", () => {
+          let url = "http://localhost:3000/update/slot?";
+          ["x", "y", "bed_id", "plant_id"].forEach((label, i) => {
+            if (i > 0) {
+              url += "&";
+            }
+            url += label + "=" + encodeURIComponent(d3.select(`#${label}`).property("value"));
+          });
+          fetch(url)
+            .then((response) => {
+                return response.json();
+              })
+              .then((data) => {
+                update(data);
+              });
+        });
+    </script>
+  </body>
+</html>

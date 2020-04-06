@@ -1,3 +1,5 @@
+config.backup.json
+
 # Logs
 logs
 *.log
@@ -102,3 +104,6 @@ dist
 
 # TernJS port file
 .tern-port
+app/.DS_Store
+app/images/.DS_Store
+.DS_Store

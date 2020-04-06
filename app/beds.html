@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+  <head>
+    <meta charset="utf-8">
+    <style type="text/css">
+      rect {
+        stroke: black;
+      }
+    </style>
+  </head>
+  <body>
+    <nav><ul>
+      <li><a href="index.html">Manage Beds</a></li>
+      <li><a href="plants.html">Edit Plants</a></li>
+      <li><a href="beds.html">Edit Beds</a></li>
+    </ul></nav>
+    <h1>Beds</h1>
+    <div id="table">
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Cols</th><th>Rows</th><th>Width</th><th>Height</th><th></th></tr>
+        </thead>
+        <tbody></tbody>
+        <tfoot>
+          <tr><th>Name</th><th>Cols</th><th>Rows</th><th>Width</th><th>Height</th><th></th></tr>
+        </tfoot>
+      </table>
+    </div>
+    <div id="insert-form">
+      <h2>Create new bed</h2>
+      <label>Name</label><input type="text" id="insert-form-name" /><br />
+      <label>Cols</label><input type="text" id="insert-form-cols" /><br />
+      <label>Rows</label><input type="text" id="insert-form-rows" /><br />
+      <label>Width</label><input type="text" id="insert-form-width" /><br />
+      <label>Height</label><input type="text" id="insert-form-height" /><br />
+      <button id="insert-form-button">Insert</button>
+    </div>
+    <div id="update-form">
+      <h2>Edit bed</h2>
+      <input type="hidden" id="update-form-id" />
+      <label>Name</label><input type="text" id="update-form-name" /><br />
+      <label>Cols</label><input type="text" id="update-form-cols" /><br />
+      <label>Rows</label><input type="text" id="update-form-rows" /><br />
+      <label>Width</label><input type="text" id="update-form-width" /><br />
+      <label>Height</label><input type="text" id="update-form-height" /><br />
+      <button id="update-form-button">Update</button>
+    </div>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script>
+      d3.json("http://localhost:3000/data")
+        .then((data) => {
+          update(data);
+        });
+
+      const update = (data) => {
+        d3.selectAll("#table tbody *").remove();
+        const rows = d3.select("#table tbody").selectAll("tr").data(data.beds).enter().append("tr");
+          rows.append("td").html((d) => d.name)
+          rows.append("td").html((d) => d.slots.cols)
+          rows.append("td").html((d) => d.slots.rows)
+          rows.append("td").html((d) => d.size.width)
+          rows.append("td").html((d) => d.size.height)
+          rows.append("td").append("a").text("edit").on("click", (d) => {
+            ["id", "name", "cols", "rows", "width", "height"].forEach((label) => {
+              let val = d[label];
+              if (label === "cols" || label === "rows") {
+                val = d.slots[label];
+              }
+              if (label === "width" || label === "height") {
+                val = d.size[label];
+              }
+              d3.select(`#update-form-${label}`).attr("value", val);
+            });
+          });
+      };
+
+      d3.select("#update-form-button").on("click", () => {
+        let url = "http://localhost:3000/update/bed?";
+        ["id", "name", "cols", "rows", "width", "height"].forEach((label, i) => {
+          if (i > 0) {
+            url += "&";
+          }
+          url += label + "=" + encodeURIComponent(d3.select(`#update-form-${label}`).property("value"));
+        });
+        fetch(url)
+          .then((response) => {
+            return response.json();
+          })
+          .then((data) => {
+            update(data);
+          });
+      });
+
+      d3.select("#insert-form-button").on("click", () => {
+        let url = "http://localhost:3000/insert/bed?";
+        ["name", "cols", "rows", "width", "height"].forEach((label, i) => {
+          if (i > 0) {
+            url += "&";
+          }
+          url += label + "=" + encodeURIComponent(d3.select(`#insert-form-${label}`).property("value"));
+        });
+        fetch(url)
+        .then((response) => {
+            return response.json();
+          })
+          .then((data) => {
+            update(data);
+          });
+      });
+    </script>
+  </body>
+</html>
