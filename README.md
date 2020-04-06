@@ -1,6 +1,8 @@
 # garden-planner
 plan your vegetable beds 
 
+![Preview of garden planner](./thumbnail.png)
+
 ## note
 
 This is a weekend project, it is in an early beta state, not much styling going on here. But it works :)
